@@ -18,9 +18,8 @@ from multiprocessing import Process, Queue
 import tweepy
 import requests
 
-from requests import ConnectionError
-
 from pymongo import errors as PyError, MongoClient
+from requests import ConnectionError
 
 # Logging
 from logger import logger as logger_perso
@@ -46,11 +45,9 @@ def ensure_unique_index(collection, key):
 
 
 class StreamListener(tweepy.StreamListener):
-    def __init__(self, collection_tweet, *args, **kw):
-        super().__init__(*args, **kw)
+    def __init__(self, collection_tweet, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.collection_tweet = collection_tweet
-
-        # self.queue = queue
 
     def insert_tweet(self, tweet):
         """ """
@@ -103,7 +100,7 @@ if __name__ == "__main__":
     api = tweepy.API(auth)
 
     # initialize stream
-    streamListener = StreamListener()
+    streamListener = StreamListener(collection_tweet)
     stream = tweepy.Stream(
         auth=api.auth, listener=streamListener, tweet_mode="extended"
     )
