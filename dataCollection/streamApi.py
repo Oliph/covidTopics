@@ -48,6 +48,7 @@ class StreamListener(tweepy.StreamListener):
     def __init__(self, collection_tweet, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.collection_tweet = collection_tweet
+        self.total_tweets = 0
 
     def insert_tweet(self, tweet):
         """ """
@@ -61,12 +62,25 @@ class StreamListener(tweepy.StreamListener):
             )
 
     def on_status(self, status):
+        self.total_tweets +=1
         self.insert_tweet(status._json)
         # self.queue.put(status)
+        if self.total_tweets % 1000 == 0:
+            print('Collected: {}'.format(self.total_tweets))
 
     def on_error(self, status_code):
         print("Encountered streaming error (", status_code, ")")
-        sys.exit()
+        return True
+
+    def filter(self, keywords=None, async=True):
+        streamer = self.__streamer__()
+        try:
+            print("[STREAM] Started steam")
+            streamer.filter(track=keywords, async=async)
+        except Exception as ex:
+            print("[STREAM] Stream stopped! Reconnecting to twitter stream")
+            print(ex.message, ex.args)
+            self.filter(keywords=keywords, async=async)
 
 
 def get_stream_data(streamAPI, queue, search_terms=["hate speech"]):
