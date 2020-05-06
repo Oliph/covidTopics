@@ -66,20 +66,20 @@ class StreamListener(tweepy.StreamListener):
         self.insert_tweet(status._json)
         # self.queue.put(status)
         if self.total_tweets % 1000 == 0:
-            print("Collected: {}".format(self.total_tweets))
+            logger.info("Collected: {}".format(self.total_tweets))
 
     def on_error(self, status_code):
-        print("Encountered streaming error (", status_code, ")")
+        logger.error("Encountered streaming error: {}".format(status_code))
         return True
 
     def filter(self, keywords=None, to_async=True):
         streamer = self.__streamer__()
         try:
-            print("[STREAM] Started steam")
+            logger.info("Starting steam")
             streamer.filter(track=keywords, is_async=is_async)
         except Exception as ex:
-            print("[STREAM] Stream stopped! Reconnecting to twitter stream")
-            print(ex.message, ex.args)
+            logger.error("Stream stoppped. Error: ".format(e))
+            logger.error("Reconnecting to twitter stream")
             self.filter(keywords=keywords, is_async=is_async)
 
 
@@ -97,9 +97,6 @@ if __name__ == "__main__":
     mongodb = connect_db()
 
     logger.info("Starting the process")
-    # logger.ERROR("Test")
-    # logger.info("Working")
-    # raise
     collection_tweet = mongodb["tweets"]
     # Create unique index
     ensure_unique_index(collection_tweet, "id")
