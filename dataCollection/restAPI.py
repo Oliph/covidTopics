@@ -78,7 +78,7 @@ def search_missing_period(collection, api, list_terms, last_tweet_id):
     """
     for tweets in api.search_tweets(list_terms, since_id=last_tweet_id):
         for t in tweets.response['statuses']:
-            insert_tweet(collection, tweet)
+            insert_tweet(collection, t)
 
 
 

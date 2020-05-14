@@ -21,6 +21,7 @@ from requests import ConnectionError
 
 import tweepy
 
+from twitterAccess.RESTApi import TwitterRESTAPI
 import restAPI 
 
 from pymongo import errors as PyError, MongoClient
@@ -112,33 +113,36 @@ if __name__ == "__main__":
     consumer_secret = os.environ["TWITTER_CONSUMER_SECRET"]
     access_token = os.environ["TWITTER_ACCESS_TOKEN"]
     access_token_secret = os.environ["TWITTER_ACCESS_TOKEN_SECRET"]
+    rest_api = TwitterRESTAPI(
+        consumer_key,
+        consumer_secret,
+        access_token,
+        access_token_secret,
+        wait_on_pause=True,
+    )
 
     # complete authorization and initialize API endpoint
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
-    api = tweepy.API(auth)
+    stream_api = tweepy.API(auth)
 
     # initialize stream
     streamListener = StreamListener(collection_tweet)
     stream = tweepy.Stream(
-        auth=api.auth, listener=streamListener, tweet_mode="extended"
+        auth=stream_api.auth, listener=streamListener, tweet_mode="extended"
     )
     list_terms = ["desconfinament", "desescalda", "desconfinamiento", "desescalada"]
-    crash = False
     logger.info('Get the last inserted tweet')
     last_tweet = restAPI.find_last_tweet_from_stream(collection_tweet)
-    crash = True
-    while True:
-        try:
-            logger.info('Run the stream in async mode')
-            stream.filter(track=list_terms, is_async=True)
-            if crash is True:
-                logger.info('Launch the REST API to get the missing tweets')
-                restAPI.search_missing_period(collection, api, last_tweet)
-        except Exception as e:
-            logger.error(e)
-            logger.info('Get the last inserted tweet')
-            last_tweet = restAPI.find_last_tweet_from_stream(collection_tweet)
-            crash = True
-            
+    #while True:
+#    try:
+    logger.info('Run the stream in async mode')
+    stream.filter(track=list_terms, is_async=True)
+    logger.info('Launch the REST API to get the missing tweets')
+    restAPI.search_missing_period(collection_tweet, rest_api, list_terms, last_tweet)
+#    except Exception as e:
+#        logger.error(e)
+#        logger.info('Get the last inserted tweet')
+#        last_tweet = restAPI.find_last_tweet_from_stream(collection_tweet)
+#        
 
