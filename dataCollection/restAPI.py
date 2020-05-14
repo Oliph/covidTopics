@@ -43,16 +43,16 @@ def ensure_unique_index(collection, key):
     # collection.drop_index("id_1")
 
 
-    def insert_tweet(self, tweet):
-        """ """
-        try:
-            collection_tweet.insert_one(tweet)
-        except PyError.DuplicateKeyError:
-            pass
-        except TypeError:
-            logger.info(
-                "Error in insert_record, not a dict to insert: {}".format(tweet)
-            )
+def insert_tweet(collection, tweet):
+    """ """
+    try:
+        collection.insert_one(tweet)
+    except PyError.DuplicateKeyError:
+        pass
+    except TypeError:
+        logger.info(
+            "Error in insert_record, not a dict to insert: {}".format(tweet)
+        )
 
 
 if __name__ == "__main__":
@@ -78,5 +78,5 @@ if __name__ == "__main__":
     access_token_secret = os.environ["TWITTER_ACCESS_TOKEN_SECRET"]
     twitter_api = TwitterRESTAPI(consumer_key, consumer_secret, access_token, access_token_secret, wait_on_pause=True)
     for tweets in twitter_api.search_tweets(list_terms):
-        print(tweets.response)
-
+        for tweet in tweets.response['statuses']:
+            insert_tweet(collection_tweet, tweet)
