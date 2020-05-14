@@ -21,6 +21,8 @@ from requests import ConnectionError
 
 import tweepy
 
+import restAPI 
+
 from pymongo import errors as PyError, MongoClient
 
 # Logging
@@ -122,4 +124,21 @@ if __name__ == "__main__":
         auth=api.auth, listener=streamListener, tweet_mode="extended"
     )
     list_terms = ["desconfinament", "desescalda", "desconfinamiento", "desescalada"]
-    stream.filter(track=list_terms, is_async=True)
+    crash = False
+    logger.info('Get the last inserted tweet')
+    last_tweet = restAPI.find_last_tweet_from_stream(collection_tweet)
+    crash = True
+    while True:
+        try:
+            logger.info('Run the stream in async mode')
+            stream.filter(track=list_terms, is_async=True)
+            if crash is True:
+                logger.info('Launch the REST API to get the missing tweets')
+                restAPI.search_missing_period(collection, api, last_tweet)
+        except Exception as e:
+            logger.error(e)
+            logger.info('Get the last inserted tweet')
+            last_tweet = restAPI.find_last_tweet_from_stream(collection_tweet)
+            crash = True
+            
+
