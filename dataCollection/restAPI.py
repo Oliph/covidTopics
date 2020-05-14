@@ -12,18 +12,21 @@ import asyncio
 import urllib.parse as urllib
 
 from datetime import datetime
-
-import tweepy
-import requests
-
-from pymongo import errors as PyError, MongoClient
-from requests import ConnectionError
 from twitterAccess.RESTApi import TwitterRESTAPI
 
-# Logging
-from logger import logger as logger_perso
+import requests
 
-logger = logger_perso(name="twitterRESTAPI", stream_level="INFO", file_level="ERROR")
+from requests import ConnectionError
+
+import tweepy
+
+from pymongo import errors as PyError, MongoClient
+
+# Logging
+import logging
+
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%d-%b-%y %H:%M:%S")
+logger = logging.getLogger(__name__)
 
 
 def connect_db():
@@ -42,7 +45,6 @@ def ensure_unique_index(collection, key):
     collection.create_index(key, unique=True)
     # collection.drop_index("id_1")
 
-
 def insert_tweet(collection, tweet):
     """ """
     try:
@@ -53,6 +55,15 @@ def insert_tweet(collection, tweet):
         logger.info(
             "Error in insert_record, not a dict to insert: {}".format(tweet)
         )
+
+
+def find_last_tweet_from_stream(collection):
+    """
+    Find the last tweet inserted in the db and return the tweet id to
+    be passed into the search API
+    """
+    last_tweet = collection.find({}).sort({"_id": -1}).limit(1)
+    print(last_tweet)
 
 
 if __name__ == "__main__":
@@ -71,12 +82,21 @@ if __name__ == "__main__":
 
     ### TWITTER CONNECTION
     list_terms = ["desconfinament", "desescalda", "desconfinamiento", "desescalada"]
+    # list_terms = ["covid"]
 
     consumer_key = os.environ["TWITTER_CONSUMER_KEY"]
     consumer_secret = os.environ["TWITTER_CONSUMER_SECRET"]
     access_token = os.environ["TWITTER_ACCESS_TOKEN"]
     access_token_secret = os.environ["TWITTER_ACCESS_TOKEN_SECRET"]
-    twitter_api = TwitterRESTAPI(consumer_key, consumer_secret, access_token, access_token_secret, wait_on_pause=True)
-    for tweets in twitter_api.search_tweets(list_terms):
-        for tweet in tweets.response['statuses']:
-            insert_tweet(collection_tweet, tweet)
+    twitter_api = TwitterRESTAPI(
+        consumer_key,
+        consumer_secret,
+        access_token,
+        access_token_secret,
+        wait_on_pause=True,
+    )
+
+    last_tweet = find_last_tweet_from_stream(collection_tweet)
+
+    # for tweets in twitter_api.search_tweets(list_terms):
+    #     print(tweets.response)
