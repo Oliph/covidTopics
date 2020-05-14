@@ -57,6 +57,15 @@ def ensure_unique_index(collection, key):
             )
 
 
+def find_last_tweet_from_stream(collection):
+    """
+    Find the last tweet inserted in the db and return the tweet id to
+    be passed into the search API
+    """
+    last_tweet = collection.find({}).sort({"_id": -1}).limit(1)
+    print(last_tweet)
+
+
 if __name__ == "__main__":
 
     # ### LOAD ENV ################################################
@@ -86,5 +95,8 @@ if __name__ == "__main__":
         access_token_secret,
         wait_on_pause=True,
     )
-    for tweets in twitter_api.search_tweets(list_terms):
-        print(tweets.response)
+
+    last_tweet = find_last_tweet_from_stream(collection_tweet)
+
+    # for tweets in twitter_api.search_tweets(list_terms):
+    #     print(tweets.response)
