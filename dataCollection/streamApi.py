@@ -15,16 +15,19 @@ from datetime import datetime
 from collections import deque
 from multiprocessing import Process, Queue
 
-import tweepy
 import requests
 
-from pymongo import errors as PyError, MongoClient
 from requests import ConnectionError
 
-# Logging
-from logger import logger as logger_perso
+import tweepy
 
-logger = logger_perso(name="twitterStreamApi", stream_level="INFO", file_level="ERROR")
+from pymongo import errors as PyError, MongoClient
+
+# Logging
+import logging
+
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%d-%b-%y %H:%M:%S")
+logger = logging.getLogger(__name__)
 
 
 def connect_db():
