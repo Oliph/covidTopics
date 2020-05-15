@@ -19,14 +19,14 @@ import requests
 from requests import ConnectionError
 
 import tweepy
-
 import pymongo
+
 from pymongo import errors as PyError, MongoClient
 
 # Logging
 import logging
 
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%d-%b-%y %H:%M:%S")
+logging.basicConfig(format="%(asctime)s::%(message)s", datefmt="%d-%b-%y %H:%M:%S")
 logger = logging.getLogger(__name__)
 
 
@@ -46,6 +46,7 @@ def ensure_unique_index(collection, key):
     collection.create_index(key, unique=True)
     # collection.drop_index("id_1")
 
+
 def insert_tweet(collection, tweet):
     """ """
     try:
@@ -53,9 +54,7 @@ def insert_tweet(collection, tweet):
     except PyError.DuplicateKeyError:
         pass
     except TypeError:
-        logger.info(
-            "Error in insert_record, not a dict to insert: {}".format(tweet)
-        )
+        logger.info("Error in insert_record, not a dict to insert: {}".format(tweet))
 
 
 def find_last_tweet_from_stream(collection):
@@ -63,23 +62,33 @@ def find_last_tweet_from_stream(collection):
     Find the last tweet inserted in the db and return the tweet id to
     be passed into the search API
     """
-    last_tweet = collection.find_one({}, {'id': True, 'created_at': True, '_id': False}, sort=[("_id", pymongo.DESCENDING)])
-    logger.info("Last recorded tweet before crash: id: {} - date: {}".format(last_tweet['id'], last_tweet['created_at']))
-    return last_tweet['id']
+    last_tweet = collection.find_one(
+        {},
+        {"id": True, "created_at": True, "_id": False},
+        sort=[("_id", pymongo.DESCENDING)],
+    )
+    logger.info(
+        "Last recorded tweet before crash: id: {} - date: {}".format(
+            last_tweet["id"], last_tweet["created_at"]
+        )
+    )
+    return last_tweet["id"]
 
-def search_missing_period(collection, api, list_terms, last_tweet_id):
+
+def search_missing_period(collection, api, list_terms, last_tweet_id, until_period):
     """
-    Run the REST API Search to get the tweets missing since 
+    Run the REST API Search to get the tweets missing since
     the crash
     :params:
         collection mongodb.collection(): Where to insert tweets
         api twitter.api(): api connection to twitter rest
         last_tweet_id int(): tweet id of the last recorded tweet
     """
-    for tweets in api.search_tweets(list_terms, since_id=last_tweet_id):
-        for t in tweets.response['statuses']:
+    for tweets in api.search_tweets(
+        list_terms, since_id=last_tweet_id, until=until_period
+    ):
+        for t in tweets.response["statuses"]:
             insert_tweet(collection, t)
-
 
 
 if __name__ == "__main__":
@@ -112,6 +121,10 @@ if __name__ == "__main__":
         wait_on_pause=True,
     )
     last_tweet_id = find_last_tweet_from_stream(collection_tweet)
-    search_missing_period(collection_tweet, api, list_terms, last_tweet_id)
-    #for tweets in twitter_api.search_tweets(list_terms, since_id=last_tweet_id):
+    until_period = str(datetime.date(datetime.now()))
+    raise
+    search_missing_period(
+        collection_tweet, api, list_terms, last_tweet_id, until_period
+    )
+    # for tweets in twitter_api.search_tweets(list_terms, since_id=last_tweet_id):
     #    print(tweets.response)
