@@ -140,7 +140,10 @@ if __name__ == "__main__":
     logger.info("Run the stream in async mode")
     stream.filter(track=list_terms, is_async=True)
     logger.info("Launch the REST API to get the missing tweets")
-    restAPI.search_missing_period(collection_tweet, rest_api, list_terms, last_tweet)
+    until_period = str(datetime.date(datetime.now()))
+    restAPI.search_missing_period(
+        collection_tweet, rest_api, list_terms, last_tweet, until
+    )
 #    except Exception as e:
 #        logger.error(e)
 #        logger.info('Get the last inserted tweet')
