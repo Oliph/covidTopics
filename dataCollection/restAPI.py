@@ -75,7 +75,7 @@ def find_last_tweet_from_stream(collection):
     return last_tweet["id"]
 
 
-def search_missing_period(collection, api, list_terms, last_tweet_id, until_period):
+def search_missing_period(collection, api, list_terms, last_tweet_id=None, until_period=None):
     """
     Run the REST API Search to get the tweets missing since
     the crash
@@ -120,11 +120,12 @@ if __name__ == "__main__":
         access_token_secret,
         wait_on_pause=True,
     )
-    last_tweet_id = find_last_tweet_from_stream(collection_tweet)
+    with open('last_tweet', 'r') as f:
+        last_tweet_id = int(f.readlines()[0])
     until_period = str(datetime.date(datetime.now()))
-    raise
+    logger.info('Search tweets from {} until the last_tweet: {}'.format(until_period, last_tweet_id))
     search_missing_period(
-        collection_tweet, api, list_terms, last_tweet_id, until_period
+        collection=collection_tweet, api=api, list_terms=list_terms, last_tweet_id=last_tweet_id, until_period=until_period
     )
     # for tweets in twitter_api.search_tweets(list_terms, since_id=last_tweet_id):
     #    print(tweets.response)
