@@ -28,7 +28,7 @@ from pymongo import errors as PyError, MongoClient
 # Logging
 import logging
 
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%d-%b-%y %H:%M:%S")
+logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%d-%b-%y %H:%M:%S", level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +39,7 @@ def connect_db():
     user = os.environ["DB_MONGO_USER"]
     passw = os.environ["DB_MONGO_PASS"]
     client = MongoClient(host, port, username=user, password=passw)
-    logger.info("server_info():", client.server_info())
+    print("server_info():", client.server_info())
     return client[database]
 
 
@@ -62,16 +62,17 @@ class StreamListener(tweepy.StreamListener):
         except PyError.DuplicateKeyError:
             pass
         except TypeError:
-            logger.info(
+            print(
                 "Error in insert_record, not a dict to insert: {}".format(tweet)
             )
 
     def on_status(self, status):
         self.total_tweets += 1
         self.insert_tweet(status._json)
+        print('Inserted tweet: {}'.format(self.total_tweets))
         # self.queue.put(status)
         if self.total_tweets % 1000 == 0:
-            logger.info("Collected: {}".format(self.total_tweets))
+            print("Collected: {}".format(self.total_tweets))
 
     def on_error(self, status_code):
         logger.error("Encountered streaming error: {}".format(status_code))
@@ -80,7 +81,7 @@ class StreamListener(tweepy.StreamListener):
     def filter(self, keywords=None, to_async=True):
         streamer = self.__streamer__()
         try:
-            logger.info("Starting steam")
+            print("Starting steam")
             streamer.filter(track=keywords, is_async=is_async)
         except Exception as ex:
             logger.error("Stream stoppped. Error: ".format(e))
@@ -95,13 +96,14 @@ def get_stream_data(streamAPI, queue, search_terms=["hate speech"]):
 if __name__ == "__main__":
 
     # ### LOAD ENV ################################################
+    print('Run the software')
     from dotenv import load_dotenv
 
     load_dotenv()
 
+    print('Connect to db')
     mongodb = connect_db()
 
-    logger.info("Starting the process")
     collection_tweet = mongodb["tweets"]
     # Create unique index
     ensure_unique_index(collection_tweet, "id")
@@ -121,31 +123,32 @@ if __name__ == "__main__":
     )
 
     # complete authorization and initialize API endpoint
+    print('Connect to Twitter API')
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
     stream_api = tweepy.API(auth)
 
     # initialize stream
+    print('Init the streamlistener')
     streamListener = StreamListener(collection_tweet)
     stream = tweepy.Stream(
         auth=stream_api.auth, listener=streamListener, tweet_mode="extended"
     )
     list_terms = ["desconfinament", "desescalda", "desconfinamiento", "desescalada"]
-    logger.info("Get the last inserted tweet")
+    print("Get the last inserted tweet")
     last_tweet = restAPI.find_last_tweet_from_stream(collection_tweet)
     with open("./last_tweet", "w") as f:
-        f.write(last_tweet)
+        f.write(str(last_tweet))
     # while True:
     #    try:
-    logger.info("Run the stream in async mode")
-    stream.filter(track=list_terms, is_async=True)
-    logger.info("Launch the REST API to get the missing tweets")
+    print("Run the stream in async mode")
+    stream.filter(track=list_terms, is_async=False)
     until_period = str(datetime.date(datetime.now()))
-    restAPI.search_missing_period(
-        collection_tweet, rest_api, list_terms, last_tweet, until
-    )
+    #restAPI.search_missing_period(
+    #    collection_tweet, rest_api, list_terms, last_tweet, until_period
+    #)
 #    except Exception as e:
 #        logger.error(e)
-#        logger.info('Get the last inserted tweet')
+#        print('Get the last inserted tweet')
 #        last_tweet = restAPI.find_last_tweet_from_stream(collection_tweet)
 #

@@ -10,8 +10,7 @@ import sys
 import time  # datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 import asyncio
 import urllib.parse as urllib
-
-from datetime import datetime
+import datetime
 from twitterAccess.RESTApi import TwitterRESTAPI
 
 import requests
@@ -26,9 +25,10 @@ from pymongo import errors as PyError, MongoClient
 # Logging
 import logging
 
-logging.basicConfig(format="%(asctime)s::%(message)s", datefmt="%d-%b-%y %H:%M:%S")
-logger = logging.getLogger(__name__)
-
+##logging = logging.getLogger(__name__)
+##logging.basicConfig(format="%(asctime)s::%(message)s", datefmt="%d-%b-%y %H:%M:%S", level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
+#logging.info('Test')
 
 def connect_db():
     host = os.environ["DB_HOST"]
@@ -37,7 +37,8 @@ def connect_db():
     user = os.environ["DB_MONGO_USER"]
     passw = os.environ["DB_MONGO_PASS"]
     client = MongoClient(host, port, username=user, password=passw)
-    logger.info("server_info():", client.server_info())
+    #logging.info("server_info():", client.server_info())
+    print('server_info(): {}'.format(client.server_info()))
     return client[database]
 
 
@@ -54,7 +55,8 @@ def insert_tweet(collection, tweet):
     except PyError.DuplicateKeyError:
         pass
     except TypeError:
-        logger.info("Error in insert_record, not a dict to insert: {}".format(tweet))
+        print("Error in insert_record, not a dict to insert: {}".format(tweet))
+        #logging.info("Error in insert_record, not a dict to insert: {}".format(tweet))
 
 
 def find_last_tweet_from_stream(collection):
@@ -67,11 +69,10 @@ def find_last_tweet_from_stream(collection):
         {"id": True, "created_at": True, "_id": False},
         sort=[("_id", pymongo.DESCENDING)],
     )
-    logger.info(
+    print(
         "Last recorded tweet before crash: id: {} - date: {}".format(
             last_tweet["id"], last_tweet["created_at"]
-        )
-    )
+        ))
     return last_tweet["id"]
 
 
@@ -85,7 +86,7 @@ def search_missing_period(collection, api, list_terms, last_tweet_id=None, until
         last_tweet_id int(): tweet id of the last recorded tweet
     """
     for tweets in api.search_tweets(
-        list_terms, since_id=last_tweet_id, until=until_period
+        list_terms, until=until_period
     ):
         for t in tweets.response["statuses"]:
             insert_tweet(collection, t)
@@ -98,9 +99,10 @@ if __name__ == "__main__":
 
     load_dotenv()
 
+    #logging.info("Starting the process")
     mongodb = connect_db()
 
-    logger.info("Starting the process")
+
     collection_tweet = mongodb["tweets"]
     # Create unique index
     ensure_unique_index(collection_tweet, "id")
@@ -122,8 +124,10 @@ if __name__ == "__main__":
     )
     with open('last_tweet', 'r') as f:
         last_tweet_id = int(f.readlines()[0])
-    until_period = str(datetime.date(datetime.now()))
-    logger.info('Search tweets from {} until the last_tweet: {}'.format(until_period, last_tweet_id))
+    until_period = str(datetime.datetime.date(datetime.datetime.now() -datetime.timedelta(days=1)))
+    #until_period = str(datetime.date(datetime.now()))
+    #logging.info('Search tweets from {} until the last_tweet: {}'.format(until_period, last_tweet_id))
+    print('Search tweets from {} until the last_tweet: {}'.format(until_period, last_tweet_id))
     search_missing_period(
         collection=collection_tweet, api=api, list_terms=list_terms, last_tweet_id=last_tweet_id, until_period=until_period
     )
