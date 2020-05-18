@@ -16,20 +16,31 @@ from collections import deque
 from multiprocessing import Process, Queue
 from twitterAccess.RESTApi import TwitterRESTAPI
 
+import tweepy
 import requests
 
+from pymongo import errors as PyError, MongoClient
 from requests import ConnectionError
 
-import tweepy
 import restAPI
-
-from pymongo import errors as PyError, MongoClient
 
 # Logging
 import logging
 
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%d-%b-%y %H:%M:%S", level=logging.DEBUG)
+logger_level = "DEBUG"
+stream_level = "INFO"
+file_level = "ERROR"
+
 logger = logging.getLogger(__name__)
+logger_set_level = getattr(logging, "INFO")
+logger.setLevel(logger_set_level)
+formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s")
+
+stream_handler = logging.StreamHandler()
+stream_set_level = getattr(logging, stream_level)
+stream_handler.setLevel(stream_set_level)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 
 def connect_db():
@@ -62,17 +73,17 @@ class StreamListener(tweepy.StreamListener):
         except PyError.DuplicateKeyError:
             pass
         except TypeError:
-            print(
+            logger.info(
                 "Error in insert_record, not a dict to insert: {}".format(tweet)
             )
 
     def on_status(self, status):
         self.total_tweets += 1
         self.insert_tweet(status._json)
-        print('Inserted tweet: {}'.format(self.total_tweets))
+        logger.info("Inserted tweet: {}".format(self.total_tweets))
         # self.queue.put(status)
         if self.total_tweets % 1000 == 0:
-            print("Collected: {}".format(self.total_tweets))
+            logger.info("Collected: {}".format(self.total_tweets))
 
     def on_error(self, status_code):
         logger.error("Encountered streaming error: {}".format(status_code))
@@ -81,7 +92,7 @@ class StreamListener(tweepy.StreamListener):
     def filter(self, keywords=None, to_async=True):
         streamer = self.__streamer__()
         try:
-            print("Starting steam")
+            logger.info("Starting steam")
             streamer.filter(track=keywords, is_async=is_async)
         except Exception as ex:
             logger.error("Stream stoppped. Error: ".format(e))
@@ -96,12 +107,13 @@ def get_stream_data(streamAPI, queue, search_terms=["hate speech"]):
 if __name__ == "__main__":
 
     # ### LOAD ENV ################################################
-    print('Run the software')
+    logger.info("Run the software")
+
     from dotenv import load_dotenv
 
     load_dotenv()
 
-    print('Connect to db')
+    logger.info("Connect to db")
     mongodb = connect_db()
 
     collection_tweet = mongodb["tweets"]
@@ -123,32 +135,32 @@ if __name__ == "__main__":
     )
 
     # complete authorization and initialize API endpoint
-    print('Connect to Twitter API')
+    logger.info("Connect to Twitter API")
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
     stream_api = tweepy.API(auth)
 
     # initialize stream
-    print('Init the streamlistener')
+    logger.info("Init the streamlistener")
     streamListener = StreamListener(collection_tweet)
     stream = tweepy.Stream(
         auth=stream_api.auth, listener=streamListener, tweet_mode="extended"
     )
     list_terms = ["desconfinament", "desescalda", "desconfinamiento", "desescalada"]
-    print("Get the last inserted tweet")
+    logger.info("Get the last inserted tweet")
     last_tweet = restAPI.find_last_tweet_from_stream(collection_tweet)
     with open("./last_tweet", "w") as f:
         f.write(str(last_tweet))
     # while True:
     #    try:
-    print("Run the stream in async mode")
+    logger.info("Run the stream in async mode")
     stream.filter(track=list_terms, is_async=False)
     until_period = str(datetime.date(datetime.now()))
-    #restAPI.search_missing_period(
+    # restAPI.search_missing_period(
     #    collection_tweet, rest_api, list_terms, last_tweet, until_period
-    #)
+    # )
 #    except Exception as e:
 #        logger.error(e)
-#        print('Get the last inserted tweet')
+#        logger.info('Get the last inserted tweet')
 #        last_tweet = restAPI.find_last_tweet_from_stream(collection_tweet)
 #
