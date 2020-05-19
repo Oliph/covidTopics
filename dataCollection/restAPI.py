@@ -109,10 +109,10 @@ def search_missing_period(
     for tweets in api.search_tweets(
         search_terms=list_terms, max_id=max_id, since_id=since_id
     ):
-        # print(tweets.__dict__)
-        for t in tweets.response["statuses"]:
-            # print(t)
-            insert_tweet(collection, t)
+        print(tweets.__dict__)
+        # for t in tweets.response["statuses"]:
+        # print(t)
+        # insert_tweet(collection, t)
 
 
 def parse_count_per_hours(collection):
