@@ -71,7 +71,7 @@ def check_tweet(tweet, list_terms):
         return True
 
 
-def get_missing_tweets(api, collection, list_ids, list_terms):
+def get_missing_tweets(api, collection, list_ids, file_parsed_ids):
     n = 0
     m = 0
     nbr_call = 0
@@ -80,11 +80,14 @@ def get_missing_tweets(api, collection, list_ids, list_terms):
         if tweet.status != 200:
             print(tweet.response)
         for t in tweet.response:
-            # if check_tweet(t, list_terms) is True:
-            insert_tweet(collection, t)
+            print(t)
+            # insert_tweet(collection, t)
             n += 1
         if n % 100 == 0:
             print("Done {} calls".format(n))
+        with open(file_parsed_ids, "a") as f:
+            f.write("\n".join([str(i) for i in list_100]))
+            f.close()
     # print("Collected {} tweets".format(m + n))
     # print("Got {} tweets matching query".format(n))
 
@@ -143,7 +146,7 @@ def main():
     list_terms = ["desconfinament", "desescalda", "desconfinamiento", "desescalada"]
     parsed_ids = get_parsed_ids(file_parsed_ids)
     ids_to_parse = get_ids_to_parse(data_directory, parsed_ids)
-    get_missing_tweets(twitter_api, collection_tweet, ids_to_parse, list_terms)
+    get_missing_tweets(twitter_api, collection_tweet, ids_to_parse, file_parsed_ids)
 
 
 if __name__ == "__main__":
