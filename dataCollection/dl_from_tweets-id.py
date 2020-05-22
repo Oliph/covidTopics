@@ -23,7 +23,7 @@ stream_handler = logging.StreamHandler()
 stream_set_level = getattr(logging, stream_level)
 stream_handler.setLevel(stream_set_level)
 stream_handler.setFormatter(formatter)
-logging.addHanlder(stream_handler)
+logger.addHandler(stream_handler)
 
 
 env_path = os.path.join(Path().resolve().parent, ".env")
