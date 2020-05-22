@@ -5,7 +5,26 @@ from pathlib import Path
 from twitterAccess.RESTApi import TwitterRESTAPI
 
 from dotenv import load_dotenv
+
 from pymongo import errors as PyError, MongoClient
+
+# Logging
+import logging
+
+logger_level = "DEBUG"
+stream_level = "INFO"
+file_level = "ERROR"
+
+logger = logging.getLogger(__name__)
+logger_set_level = getattr(logging, "INFO")
+logger.setLevel(logger_set_level)
+formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s")
+stream_handler = logging.StreamHandler()
+stream_set_level = getattr(logging, stream_level)
+stream_handler.setLevel(stream_set_level)
+stream_handler.setFormatter(formatter)
+logging.addHanlder(stream_handler)
+
 
 env_path = os.path.join(Path().resolve().parent, ".env")
 load_dotenv(dotenv_path=env_path)
@@ -141,10 +160,13 @@ def main():
     twitter_api = connect_API()
     mongodb = connect_db(database="covidStream")
     collection_tweet = mongodb["tweets_test"]
+    # Create unique index
+    collection_tweet.create_index("id", unique=True)
     data_directory = "../../covid19_twitter/dailies"
     file_parsed_ids = "../data/parsed_ids.csv"
     list_terms = ["desconfinament", "desescalda", "desconfinamiento", "desescalada"]
     parsed_ids = get_parsed_ids(file_parsed_ids)
+    logger.info("Size of the parsed ids: {}".format(len(parsed_ids)))
     ids_to_parse = get_ids_to_parse(data_directory, parsed_ids)
     get_missing_tweets(twitter_api, collection_tweet, ids_to_parse, file_parsed_ids)
 
