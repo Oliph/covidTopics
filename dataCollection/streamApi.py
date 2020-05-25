@@ -151,16 +151,14 @@ if __name__ == "__main__":
     last_tweet = restAPI.find_last_tweet_from_stream(collection_tweet)
     with open("./last_tweet", "w") as f:
         f.write(str(last_tweet))
-    # while True:
-    #    try:
-    logger.info("Run the stream in async mode")
-    stream.filter(track=list_terms, is_async=False)
-    until_period = str(datetime.date(datetime.now()))
-    # restAPI.search_missing_period(
-    #    collection_tweet, rest_api, list_terms, last_tweet, until_period
-    # )
-#    except Exception as e:
-#        logger.error(e)
-#        logger.info('Get the last inserted tweet')
-#        last_tweet = restAPI.find_last_tweet_from_stream(collection_tweet)
-#
+    z = 0
+    while True:
+        try:
+            logger.info('Run the Stream for {} times'.format(z))
+            stream.filter(track=list_terms, is_async=False)
+            until_period = str(datetime.date(datetime.now()))
+        except Exception as e:
+            logger.error(e)
+            z +=1
+            time.sleep(30)
+

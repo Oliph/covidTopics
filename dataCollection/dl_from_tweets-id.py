@@ -53,13 +53,10 @@ def insert_tweet(collection_tweet, tweet):
     # if tweet already present
     except PyError.DuplicateKeyError:
         dup = collection_tweet.find_one({"id": tweet["id"]})
-        try:
-            dup["user"]["id"]
-        except KeyError:
-            collection_tweet.delete_one({"id": tweet["id"]})
-            collection_tweet.insert_one(tweet)
+        logger.warning('Tweet existing: {}'.format(dup))
     except TypeError:
         print("Error in insert_record, not a dict to insert: {}".format(tweet))
+        raise
 
 
 def windows(iterable, size, step=1):
@@ -100,7 +97,7 @@ def get_missing_tweets(api, collection, list_ids, file_parsed_ids):
             print(tweet.response)
         for t in tweet.response:
             print(t)
-            # insert_tweet(collection, t)
+            insert_tweet(collection, t)
             n += 1
         if n % 100 == 0:
             print("Done {} calls".format(n))
