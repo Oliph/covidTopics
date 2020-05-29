@@ -130,7 +130,7 @@ if __name__ == "__main__":
     mongodb = connect_db()
     logger.info(mongodb)
 
-    collection_tweet = mongodb["tweets-lancet"]
+    collection_tweet = mongodb["tweetsSearchTweetDev"]
     # Create unique index
     ensure_unique_index(collection_tweet, "id")
 
