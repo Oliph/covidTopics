@@ -132,7 +132,11 @@ if __name__ == "__main__":
     until_period = str(
         datetime.datetime.date(datetime.datetime.now() - datetime.timedelta(days=1))
     )
-    earliest_tweet = find_earliest_tweet(collection_tweet)
+    try:
+        earliest_tweet = find_earliest_tweet(collection_tweet)
+    except Exception as e:
+        earliest_tweet = dict()
+        earliest_tweet['created_at']  = datetime.datetime.now()
 
     diff_days = datetime.datetime.now() - earliest_tweet["created_at"]
     # print(earliest_tweet["_id"])
