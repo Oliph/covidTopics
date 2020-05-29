@@ -68,6 +68,10 @@ def insert_tweet(collection, tweet):
         inserted_tweets += 1
 
     except PyError.DuplicateKeyError:
+        print("original tweet id: {}".format(tweet['id']))
+        db_tweet_find = collection.find_one({'id': tweet['id']}, {'id': True, '_id': False})
+        print("db tweet id: {}".format(db_tweet_find))
+        
         duplicate_tweets += 1
     except TypeError:
         logger.error("Error in insert_record, not a dict to insert: {}".format(tweet))
