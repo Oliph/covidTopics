@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # __author__ = "Olivier PHILIPPE"
 
@@ -13,19 +12,25 @@ import os
 import sys
 import time  # datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 import asyncio
+import argparse
 import datetime
+import importlib
 import urllib.parse as urllib
 
 from twitterAccess.RESTApi import TwitterRESTAPI
 
-import pymongo
 import requests
+
+from requests import ConnectionError
+from dateutil.parser import parse
+
+# import config
+import tweepy
+import pymongo
 import pandas as pd
 
 from pymongo import errors as PyError, MongoClient
-from requests import ConnectionError
-
-import tweepy
+from searchTweets import search_tweets
 
 # Logging
 import logging
@@ -37,13 +42,18 @@ file_level = "ERROR"
 logger = logging.getLogger(__name__)
 logger_set_level = getattr(logging, "INFO")
 logger.setLevel(logger_set_level)
-formatter = logging.Formatter("%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s")
+formatter = logging.Formatter(
+    "%(asctime)s :: %(levelname)s :: %(name)s :: %(lineno)s :: %(message)s"
+)
 
 stream_handler = logging.StreamHandler()
 stream_set_level = getattr(logging, stream_level)
 stream_handler.setLevel(stream_set_level)
 stream_handler.setFormatter(formatter)
-logger.addHandler(stream_handler)
+logger.handlers[:] = [stream_handler]
+
+
+pd.set_option("display.max_columns", None)
 
 
 def connect_db():
@@ -61,18 +71,6 @@ def connect_db():
 def ensure_unique_index(collection, key):
 
     collection.create_index(key, unique=True)
-    # collection.drop_index("id_1")
-
-
-def insert_tweet(collection, tweet):
-    """ """
-    try:
-        collection.insert_one(tweet)
-    except PyError.DuplicateKeyError:
-        pass
-    except TypeError:
-        logger.info("Error in insert_record, not a dict to insert: {}".format(tweet))
-        # logger.info("Error in insert_record, not a dict to insert: {}".format(tweet))
 
 
 def find_last_tweet_from_stream(collection):
@@ -203,27 +201,39 @@ def getting_missing_gap(collection):
     Parse the db and return the gap in period with tweets ids as boundaries
     """
     count_per_hours = pd.DataFrame([i for i in parse_count_per_hours(collection)])
+    print(count_per_hours.head(100))
     min_date = min(count_per_hours["date"])
+    logger.info("The earliest date is: {}".format(min_date))
     max_date = max(count_per_hours["date"])
+    logger.info("The latest date is: {}".format(max_date))
     ref_time = create_reference_time(min_date, max_date)
     gaps = get_gaps(count_per_hours["date"], ref_time)
-    gaps_range = create_time_range(gaps)
-    for x in gaps_range:
-        first, last = find_tweet_boundaries(collection, x[0], x[1])
-        diff_days = datetime.datetime.now() - last["date"]
+    # Check if there is gaps. If not, it means the stream did not failed.
+    if len(gaps) != 0:
+        gaps_range = create_time_range(gaps)
+        for x in gaps_range:
+            first, last = find_tweet_boundaries(collection, x[0], x[1])
+            diff_days = datetime.datetime.now() - last["date"]
+            # Move that into the aggregate function to avoid unnecessarily return of data
+            if diff_days.days >= 7:
 
-        if diff_days.days >= 7:
-
-            logger.info(
-                "Skipping it, too old for accessing it: {} days".format(diff_days.days)
-            )
-        else:
-            logger.info(
-                "Searching for the gap between: {} and {}".format(
-                    first["date"].date(), last["date"].date()
+                logger.info(
+                    "Skipping it, too old for accessing it: {} days".format(
+                        diff_days.days
+                    )
                 )
-            )
-            yield first["id"], last["id"]
+            else:
+                logger.info(
+                    "Searching for the gap between: {} and {}".format(
+                        first["date"].date(), last["date"].date()
+                    )
+                )
+                logger.info(
+                    "\n\tFirst tweet was at: {}\n\tLast tweet was at: {}".format(
+                        first["date"], last["date"]
+                    )
+                )
+                yield first["id"], last["id"]
 
 
 if __name__ == "__main__":
@@ -232,16 +242,26 @@ if __name__ == "__main__":
 
     load_dotenv()
 
-    # logger.info("Starting the process")
+    logger.info("Starting the process")
     mongodb = connect_db()
 
-    collection_tweet = mongodb["tweets"]
+    # Parsing the config file name
+    parser = argparse.ArgumentParser(
+        description="Download earliest tweets than from the starting date of the stream data collection if the day is less than 7 days"
+    )
+    parser.add_argument("-c", "--config", type=str, default="config")
+    args = parser.parse_args()
+    config = importlib.import_module(args.config)
+
+    col_tweet_name = config.config.collection_tweet
+    logger.info("Tweets are stored into: {}".format(col_tweet_name))
+    collection_tweet = mongodb[col_tweet_name]
     # Create unique index
     ensure_unique_index(collection_tweet, "id")
 
     ### TWITTER CONNECTION
-    list_terms = ["desconfinament", "desescalda", "desconfinamiento", "desescalada"]
-    # list_terms = ["covid"]
+    list_terms = config.config.list_terms
+    logger.info("Getting the following terms: {}".format(list_terms))
 
     consumer_key = os.environ["TWITTER_CONSUMER_KEY"]
     consumer_secret = os.environ["TWITTER_CONSUMER_SECRET"]
@@ -254,15 +274,13 @@ if __name__ == "__main__":
         access_token_secret,
         wait_on_pause=True,
     )
-    until_period = str(
-        datetime.datetime.date(datetime.datetime.now() - datetime.timedelta(days=1))
-    )
-    for first_id, last_id in getting_missing_gap(collection_tweet):
 
-        search_missing_period(
-            collection=collection_tweet,
-            api=api,
-            list_terms=list_terms,
-            max_id=first_id,
-            since_id=last_id,
+    for first_id, last_id in getting_missing_gap(collection_tweet):
+        search_tweets(
+            collection_tweet,
+            api,
+            list_terms,
+            max_id=last_id,
+            since_id=first_id,
+            debug=False,
         )
