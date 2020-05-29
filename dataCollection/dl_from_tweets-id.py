@@ -53,7 +53,7 @@ def insert_tweet(collection_tweet, tweet):
     # if tweet already present
     except PyError.DuplicateKeyError:
         dup = collection_tweet.find_one({"id": tweet["id"]})
-        logger.warning('Tweet existing: {}'.format(dup))
+        logger.warning("Tweet existing: {}".format(dup))
     except TypeError:
         print("Error in insert_record, not a dict to insert: {}".format(tweet))
         raise
@@ -161,7 +161,6 @@ def main():
     collection_tweet.create_index("id", unique=True)
     data_directory = "../../covid19_twitter/dailies"
     file_parsed_ids = "../data/parsed_ids.csv"
-    list_terms = ["desconfinament", "desescalda", "desconfinamiento", "desescalada"]
     parsed_ids = get_parsed_ids(file_parsed_ids)
     logger.info("Size of the parsed ids: {}".format(len(parsed_ids)))
     ids_to_parse = get_ids_to_parse(data_directory, parsed_ids)
