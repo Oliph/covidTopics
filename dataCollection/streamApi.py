@@ -120,7 +120,7 @@ if __name__ == "__main__":
     mongodb = connect_db()
     logger.info(mongodb)
 
-    collection_tweet = mongodb["tweets-lancet"]
+    collection_tweet = mongodb["tweets_lancet"]
     # Create unique index
     ensure_unique_index(collection_tweet, "id")
 
@@ -151,6 +151,8 @@ if __name__ == "__main__":
         auth=stream_api.auth, listener=streamListener, tweet_mode="extended"
     )
     list_terms = [
+        'lancetgate',
+        '#lancetgate',
         "lancet",
         "#lancet",
         "The lancet",
