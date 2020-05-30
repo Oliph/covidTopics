@@ -9,8 +9,11 @@ import os
 import sys
 import time  # datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 import asyncio
+import argparse
+import importlib
 import urllib.parse as urllib
 
+from pathlib import Path
 from datetime import datetime
 from collections import deque
 from multiprocessing import Process, Queue
@@ -19,6 +22,7 @@ from twitterAccess.RESTApi import TwitterRESTAPI
 import tweepy
 import requests
 
+from dotenv import load_dotenv
 from pymongo import errors as PyError, MongoClient
 from requests import ConnectionError
 
@@ -109,34 +113,31 @@ if __name__ == "__main__":
     # ### LOAD ENV ################################################
     logger.info("Run the software")
 
-    from pathlib import Path
+    # Parsing the config file name
+    parser = argparse.ArgumentParser(description="Streamer connection")
+    parser.add_argument("-c", "--config", type=str, default="config")
+    args = parser.parse_args()
+    config = importlib.import_module(args.config)
 
-    from dotenv import load_dotenv
+    env_path = config.config.env_path
 
-    env_path = os.path.join(Path().resolve().parent, ".env")
+    env_path = os.path.join(Path().resolve().parent, env_path)
     load_dotenv(dotenv_path=env_path)
 
-    logger.info("Connect to db")
     mongodb = connect_db()
-    logger.info(mongodb)
-
-    collection_tweet = mongodb["tweets-lancet"]
+    col_tweet_name = config.config.collection_tweet
+    logger.info("Tweets are stored into: {}".format(col_tweet_name))
+    collection_tweet = mongodb[col_tweet_name]
     # Create unique index
     ensure_unique_index(collection_tweet, "id")
 
     ### TWITTER CONNECTION
-
+    list_terms = config.config.list_terms
+    logger.info("Getting the following terms: {}".format(list_terms))
     consumer_key = os.environ["TWITTER_CONSUMER_KEY"]
     consumer_secret = os.environ["TWITTER_CONSUMER_SECRET"]
     access_token = os.environ["TWITTER_ACCESS_TOKEN"]
     access_token_secret = os.environ["TWITTER_ACCESS_TOKEN_SECRET"]
-    rest_api = TwitterRESTAPI(
-        consumer_key,
-        consumer_secret,
-        access_token,
-        access_token_secret,
-        wait_on_pause=True,
-    )
 
     # complete authorization and initialize API endpoint
     logger.info("Connect to Twitter API")
@@ -150,20 +151,11 @@ if __name__ == "__main__":
     stream = tweepy.Stream(
         auth=stream_api.auth, listener=streamListener, tweet_mode="extended"
     )
-    list_terms = [
-        "lancet",
-        "#lancet",
-        "The lancet",
-        "#hydroxychloroquine",
-        "hydroxychloroquine",
-        "chloroquine",
-        "#chloroquine",
-    ]
     logger.info("Get the last inserted tweet")
     z = 0
     while True:
         try:
-            logger.info("Run the Stream for {} times".format(z))
+            logger.info("Run the Stream for {}  {} times".format(args.config, z))
             stream.filter(track=list_terms, is_async=False)
             until_period = str(datetime.date(datetime.now()))
         except Exception as e:
