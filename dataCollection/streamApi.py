@@ -67,7 +67,7 @@ def ensure_unique_index(collection, key):
 
 
 class StreamListener(tweepy.StreamListener):
-    def __init__(self, collection_tweet, *args, **kwargs):
+    def __init__(self, collection_tweet, collection_name, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.collection_tweet = collection_tweet
 
@@ -89,7 +89,7 @@ class StreamListener(tweepy.StreamListener):
         # logger.info("Inserted tweet: {}".format(self.total_tweets))
         # self.queue.put(status)
         if total_tweets % 1000 == 0:
-            logger.info("Collected: {}".format(total_tweets))
+            logger.info("Collected: {} into {}".format(total_tweets, collection_name))
 
     def on_error(self, status_code):
         logger.error("Encountered streaming error: {}".format(status_code))
@@ -150,7 +150,7 @@ if __name__ == "__main__":
 
     # initialize stream
     logger.info("Init the streamlistener")
-    streamListener = StreamListener(collection_tweet)
+    streamListener = StreamListener(collection_tweet, col_tweet_name)
     stream = tweepy.Stream(
         auth=stream_api.auth, listener=streamListener, tweet_mode="extended"
     )
