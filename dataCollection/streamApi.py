@@ -19,12 +19,14 @@ from collections import deque
 from multiprocessing import Process, Queue
 from twitterAccess.RESTApi import TwitterRESTAPI
 
-import tweepy
 import requests
 
 from dotenv import load_dotenv
-from pymongo import errors as PyError, MongoClient
 from requests import ConnectionError
+
+import tweepy
+
+from pymongo import errors as PyError, MongoClient
 
 # Logging
 import logging
@@ -125,15 +127,10 @@ if __name__ == "__main__":
     load_dotenv(dotenv_path=env_path)
 
     mongodb = connect_db()
-<<<<<<< HEAD
     col_tweet_name = config.config.collection_tweet
     logger.info("Tweets are stored into: {}".format(col_tweet_name))
     collection_tweet = mongodb[col_tweet_name]
-=======
-    logger.info(mongodb)
 
-    collection_tweet = mongodb["tweets_lancet"]
->>>>>>> 3d8abbb7b1cd13c51f8f416a2395b903ba033c9b
     # Create unique index
     ensure_unique_index(collection_tweet, "id")
 
@@ -157,20 +154,6 @@ if __name__ == "__main__":
     stream = tweepy.Stream(
         auth=stream_api.auth, listener=streamListener, tweet_mode="extended"
     )
-<<<<<<< HEAD
-=======
-    list_terms = [
-        'lancetgate',
-        '#lancetgate',
-        "lancet",
-        "#lancet",
-        "The lancet",
-        "#hydroxychloroquine",
-        "hydroxychloroquine",
-        "chloroquine",
-        "#chloroquine",
-    ]
->>>>>>> 3d8abbb7b1cd13c51f8f416a2395b903ba033c9b
     logger.info("Get the last inserted tweet")
     z = 0
     while True:
