@@ -120,9 +120,7 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--config", type=str, default="config")
     args = parser.parse_args()
     config = importlib.import_module(args.config)
-
     env_path = config.config.env_path
-
     env_path = os.path.join(Path().resolve().parent, env_path)
     load_dotenv(dotenv_path=env_path)
 
