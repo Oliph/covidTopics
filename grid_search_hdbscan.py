@@ -31,6 +31,7 @@ import joblib
 import umap
 import hdbscan
 import numpy as np
+
 import config_cluster
 
 # import umap.umap_ as umap
@@ -73,16 +74,18 @@ def write_report(queue, root_name, type_txt, dataset):
                 writer.writerow(report)
 
 
-def get_stats_cluster(data, cluster):
+def get_stats_cluster(data, cluster, relative_validity=False):
     """
     """
     # Get the total
     labels = cluster.labels_
     total = len(labels)
-    # validity_index_score = hdbscan.validity.validity_index(
-    #     data.astype("double"), labels
-    # )
-    validity_index_score = cluster.relative_validity_
+    if relative_validity is True:
+        validity_index_score = cluster.relative_validity_
+    else:
+        validity_index_score = hdbscan.validity.validity_index(
+            X=cluster._raw_data.astype("double"), labels=cluster.labels_
+        )
 
     # Get the string to be sure to remove the label '-1' and not the position index -1
     count_labels = Counter([str(x) for x in labels])
@@ -133,7 +136,7 @@ def getting_hdscan(
             min_cluster_size=cluster_size,
             min_samples=min_sample,
             gen_min_span_tree=True,
-            # allow_single_cluster=True,
+            allow_single_cluster=True,
             memory=memory_filename,
         )
 
