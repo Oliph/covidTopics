@@ -74,7 +74,7 @@ def write_report(queue, root_name, type_txt, dataset):
                 writer.writerow(report)
 
 
-def get_stats_cluster(data, cluster, relative_validity=False):
+def get_stats_cluster(data, cluster, relative_validity=True):
     """
     """
     # Get the total
@@ -137,6 +137,7 @@ def getting_hdscan(
             min_samples=min_sample,
             gen_min_span_tree=True,
             allow_single_cluster=True,
+            # metric="cosine",
             memory=memory_filename,
         )
 
@@ -277,6 +278,7 @@ if __name__ == "__main__":
                     n_neighbors=umap_n_neighbours,
                     min_dist=umap_min_dist,
                     n_components=n_dim,
+                    metric="cosine",
                     verbose=True,
                 ).fit(data)
                 logging.info("New model fitted, record it")

@@ -13,7 +13,7 @@ list_cluster_size = list(
         # range(3, 20, 1),
         # range(10, 50, 5),
         range(50, 100, 10),
-        # range(100, 501, 25),
+        range(100, 501, 10),
     )
 )
 list_min_size = list(
